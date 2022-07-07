@@ -71,8 +71,6 @@ def main() ->  None:
 
                     driver.close()
                     writer.writerow([''])
-                break
-            break
 
                     
 
