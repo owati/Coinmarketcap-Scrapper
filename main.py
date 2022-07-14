@@ -22,8 +22,6 @@ def url_gen(rows):
 
 
 def main() ->  None:
-    file = open('test.csv', 'w')
-    writer = csv.writer(file)
     try:
         for page in range(1,101): # iterate through all the pages
             session = HTMLSession()
@@ -34,54 +32,61 @@ def main() ->  None:
             print(len(rows))
 
             for coin in url_gen(rows[1:]):
+
+                
                 driver = webdriver.Chrome()
                 name = coin.split('/')[2] # the name of the coin from the url
                 
-                writer.writerow([name])
+                file = open(f'{name}.csv', 'w')
+                writer = csv.writer(file)
 
-                new_url = f'{PAGE_URL}{coin}historical-data/' # the url for the historical data
-                driver.get(new_url)
-                check = None
                 try:
-                    check = WebDriverWait(driver, 30).until(  # wait until the data has been rendered
-                        EC.text_to_be_present_in_element_attribute((By.TAG_NAME, 'td'), 'style','text-align: left;')
-                    )
-                except Exception as e: # the page loaded to slow
-                    print(e)
-                    driver.close()
 
-                if check:
-                    coin_html = driver.execute_script('''
-                    const html = document.querySelector('html');
-                    return html.innerHTML
-                    ''')
-                    coin_soup = BeautifulSoup(coin_html, 'html.parser')
-                    coin_rows = coin_soup.find_all('tr')    
+                    new_url = f'{PAGE_URL}{coin}historical-data/' # the url for the historical data
+                    driver.get(new_url)
+                    check = None
+                    try:
+                        check = WebDriverWait(driver, 30).until(  # wait until the data has been rendered
+                            EC.text_to_be_present_in_element_attribute((By.TAG_NAME, 'td'), 'style','text-align: left;')
+                        )
+                    except Exception as e: # the page loaded to slow
+                        print(e)
+                        driver.close()
 
-                    headers = [head.text for head in coin_rows[0].find_all('th')] # finds the headers of the table
+                    if check:
+                        coin_html = driver.execute_script('''
+                        const html = document.querySelector('html');
+                        return html.innerHTML
+                        ''')
+                        coin_soup = BeautifulSoup(coin_html, 'html.parser')
+                        coin_rows = coin_soup.find_all('tr')    
 
-                    writer.writerow(headers)
+                        headers = [head.text for head in coin_rows[0].find_all('th')] # finds the headers of the table
 
-                    for row in coin_rows[1:]:
-                        coin_data = []
-                        tds = row.find_all('td') # gets the individual element in each row
-                        for data in tds:
-                            coin_data.append(data.text)
-                        writer.writerow(coin_data)
+                        writer.writerow(headers)
 
-                    driver.close()
-                    writer.writerow([''])
-                break
-            break
+                        for row in coin_rows[1:]:
+                            coin_data = []
+                            tds = row.find_all('td') # gets the individual element in each row
+                            for data in tds:
+                                coin_data.append(data.text)
+                            writer.writerow(coin_data)
+
+                        driver.close()
+                        file.close() # closes the csv file for each coin after the loop
+                except Exception as error:
+                    print(error)
+
+                finally:
+                    file.close()
+                    
 
                     
 
     except Exception as e:
         # handle exceptions
+        driver.close()
         print(e)
-
-    finally:
-        file.close()
 
 
                 
